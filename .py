@@ -1,78 +1,84 @@
+#importing necessary modules
 import smtplib
 from rpilcd import LCD
 from email.message import EmailMessage
 from gpiozero import DistanceSensor, LED, Button, Buzzer
 from time import sleep
 import os
+
+#start pigpiod daemon
 os.system("sudo pigpiod")
+
+# importing necessary pins factory for gpiozero
 from gpiozero.pins.pigpio import PiGPIOFactory
 
-"""
-This script is designed to monitor the distance of objects using an ultrasonic sensor
-attached to a Raspberry Pi. When an object is detected within a defined threshold distance,
-the script will trigger a visual and auditory alert, and send an email notification.
-"""
-
+#creating lcd object
 lcd = LCD()
 
+#echo_pin and trigger_pin for ultrasonic sensor
 echo_pin = 21  # Connected from 'echopin' to 'echo_pin'
 trigger_pin = 20  # Connected from 'triggerpin' to 'trigger_pin'
+
+#red led object
 redLED = LED(19)
+
+#factory for gpiozero pins
 myfactory = PiGPIOFactory()
 
+#switch object
 switch = Button(26)
+
+#ultrasonic sensor object
 ultrasonic = DistanceSensor(echo=echo_pin, trigger=trigger_pin, pin_factory=myfactory)
+
+#buzzer object
 buzzer = Buzzer(12)
 
+#from email address and password
 from_email_addr = "raspberrypi10110@gmail.com"
 from_email_pass = "salrdorsckpnhirf"
+
+#to email address
 to_email_addr = "alexandra.eliana34@gmail.com"
 
+# function to send warning email
 def send_warning_email(distance):
-    """
-    Sends a warning email with the specified distance of an object detected by the ultrasonic sensor.
-    Arguments:
-    distance -- The measured distance to the object in centimeters.
-    """
-    msg = EmailMessage()
-    body = f"Hello from Raspberry Pi, something close at {distance:.1f} cm!"
-    msg.set_content(body)
-    msg['From'] = from_email_addr
-    msg['To'] = to_email_addr
-    msg['Subject'] = 'ALERT EMAIL: Object Detected Close'
+    # establish connection to gmail smtp server
     server = smtplib.SMTP('smtp.gmail.com', 587)
+    
+    # starttls encryption
     server.starttls()
-    print('starttls')
+    
+    # login to gmail account
     server.login(from_email_addr, from_email_pass)
-    print('login')
+    
+    # send email
     server.send_message(msg)
+    
+    # print success message
     print('Email sent')
+    
+    # terminate connection
     server.quit()
 
+# function to flash red led
 def ledflash():
-    """
-    Flashes the red LED 5 times to signal the detection of an object.
-    """
     for i in range(5):
         redLED.on()
         sleep(0.5)
         redLED.off()
         sleep(0.5)
 
+# function to monitor distance and trigger alerts if below threshold
 def monitor_distance():
-    """
-Continuously monitors the distance to objects using the ultrasonic sensor.
-    If an object is detected within the defined threshold, it triggers ledflash,
-    buzzer, and sends a warning email.
-"""
-threshold_distance = 10  # Distance in centimeters.
+    threshold_distance = 10  # distance threshold set at 10cm
     
     while True:
-        distance_cm = ultrasonic.distance * 100  # Converts to centimeters.
+        distance_cm = ultrasonic.distance * 100  # convert distance to centimeters
         lcd.text(f"Measured distance: {distance_cm:.1f} cm", 1)
         
-        if distance_cm < threshold_distance:
-            print("Something is close, sending an email and sounding buzzer...")
+        if distance_cm  threshold_distance:
+            print("Something is close, triggering alerts...")
             buzzer.on()
             sleep(1)
             buzzer.off()
@@ -80,10 +86,8 @@ threshold_distance = 10  # Distance in centimeters.
             send_warning_email(distance_cm)
             lcd.clear()
 
+# main execution block
 if __name__ == "__main__":
-    """
-    The main execution block of the script.
-    """
     try:
         while True:
             if switch.is_pressed:
