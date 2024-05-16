@@ -6,7 +6,7 @@ from gpiozero import DistanceSensor, LED, Button, Buzzer
 from time import sleep
 import os
 
-#start pigpiod daemon
+#start pigpiod sudo
 os.system("sudo pigpiod")
 
 # importing necessary pins factory for gpiozero
